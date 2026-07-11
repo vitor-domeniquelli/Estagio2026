@@ -1,0 +1,130 @@
+#define motorDireita  OUT_A              // Motor Direito --> entrada A
+#define motorArma     OUT_B              // Possível motor de Arma --> entrada B
+#define motorEsquerda OUT_C              // Motor Esquerdo --> entrada C
+
+#define distancia_sensor1 SensorUS(IN_1)  // Sensor Ultrassônico --> entrada 1
+#define distancia_sensor2 SensorUS(IN_2)
+#define distancia_busca 35
+
+#define angulo_rampa 90
+#define potencia_rampa 50
+
+void atacar();
+void desarme();
+void baixarRampa();
+void levantarRampa();
+void movimentoInicial();
+
+task main(){
+
+    SetSensorLowspeed(IN_1);            // NÃO MEXER SUJEITO À >>>PROBLEMAS<<<
+    SetSensorLowspeed(IN_2);
+    Wait(5000);                         // Tempo de espera previsto nas regras
+
+    desarme();
+    movimentoInicial();
+
+    while(true)
+    {
+        if(distancia_sensor1 < distancia_busca || distancia_sensor2 < distancia_busca)
+        {
+           atacar();                     //Caso localize um objeto, ataca
+        }
+
+        else
+        {                               // Caso não localize um objeto, girar para um lado (nesse caso, Esquerda)
+           OnFwd(motorDireita,50);
+           OnFwd(motorEsquerda,-50);    // Necessario testar a potência para curvas mais rápidas ou mais lentas
+        }
+    }
+}
+
+void desarme() //A rampa começa levantada e abaixa completamente
+{
+     OnFwd(motorArma,potencia_rampa);  // Necessário testar a direção e a potencia do desarme.
+     Wait(1000);
+     
+     Off(motorArma);
+     
+     ResetRotationCount(motorArma);  //Reseta o contador angular do motor da arma
+     Wait(1);
+}
+
+void baixarRampa()
+{
+     
+     OnFwd(motorArma,potencia_rampa);
+
+     while(MotorRotationCount(motorArma) > 0)            //Enquanto o motor não estiver no mesmo estado do desarme,
+                                                         ele continua se forçando pra baixo
+     {
+           OnFwd(motorArma,potencia_rampa);
+     }
+
+     Off(motorArma);
+}
+
+void levantarRampa()
+{
+
+     OnFwd(motorArma,-potencia_rampa);                       // Necessário testar a direção e a potencia para
+                                                             levantar a rampa. Deve ser diferente do desarme?
+     while(MotorRotationCount(motorArma) < angulo_rampa)     //Enquanto o motor não estiver em 90º, ele se força
+                                                             pra cima
+     {
+           OnFwd(motorArma,-potencia_rampa);
+     }
+
+     Off(motorArma);
+}
+
+void atacar()
+{
+     long giroDireita;
+     long giroEsquerda;
+
+     ResetRotationCount(motorDireita);
+     ResetRotationCount(motorEsquerda);
+     Wait(1);
+
+     //Avaça com tudo
+     OnFwd(motorDireita,100);
+     OnFwd(motorEsquerda,100);
+
+     Wait(200);
+
+     giroDireita = MotorRotationCount(motorDireita);
+     giroEsquerda = MotorRotationCount(motorEsquerda);
+
+     if(giroDireita < 15 && giroEsquerda < 15) //necessario testar se 15º deve ser o suficiente para ativar a função
+    {
+        levantarRampa();
+
+        Wait(500);
+
+        baixarRampa();
+    }
+}
+
+void movimentoInicial()
+{
+     //necessário testar e ajustar potencia dos motores e tempo de execucao para cada estratégia
+
+     //1) o robô vai começar andando para frente por 1 segundo, esperamos que fique mais próximo do centro da arena
+     OnFwd(motorDireita,50);
+     OnFwd(motorEsquerda,50);
+     Wait(1000);
+     Off(motorDireita + motorEsquerda);
+
+     //2a) diagonal para esquerda
+     //OnFwd(motorDireita,100);
+     //OnFwd(motorEsquerda,50);
+     //Wait(1000);
+     //Off(motorDireita + motorEsquerda);
+
+     //2b) diagonal para direita
+     //OnFwd(motorDireita,50);
+     //OnFwd(motorEsquerda,100);
+     //Wait(1000);
+     //Off(motorDireita + motorEsquerda);
+}
