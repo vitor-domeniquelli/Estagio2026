@@ -1,0 +1,63 @@
+//Definições
+#define motorDireita OUT_A
+#define motorArma OUT_B
+#define motorEsquerda OUT_C
+#define dist_sensor SensorUS(IN_1)
+#define dist_busca 30
+void arma();
+void m_inicial();
+void ataque();
+void busca();
+//Movimentação do robô - A (Flanqueamento)
+task main()
+     {
+     //config do sensor
+     SetSensorLowspeed(IN_1);
+     //parado antes de começar
+     Wait(5000);
+
+     //arma & estratégia inicial
+     arma();
+     m_inicial();
+     while(true)
+     {
+      //movimentação do robô
+      if (dist_sensor>0 && dist_sensor<dist_busca)
+         {ataque();
+         Wait(200);}
+     else {busca();}
+     }
+     }
+//movimento da arma
+            void arma()
+            { OnFwd(motorArma, 100);
+             Wait(500); Off(motorArma); }
+//movimento inicial do robô
+            void m_inicial()
+            { OnFwd(motorDireita, 80);
+             OnFwd(motorEsquerda, 80);
+             Wait(500);
+             OnFwd(motorDireita, 80);
+             OnFwd(motorEsquerda,-80);
+             Wait(300); }
+//busca o adversário
+          void busca()
+          { OnFwd(motorDireita, 80);
+          OnFwd(motorEsquerda,40);
+          Wait(150); }
+//ataque
+          void ataque()
+          { OnFwd(motorDireita, 100);
+          OnFwd(motorEsquerda, 100); }
+
+
+
+
+
+
+
+
+
+
+
+
