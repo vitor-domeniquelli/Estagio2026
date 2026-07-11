@@ -1,0 +1,73 @@
+#define motorDireita OUT_A
+#define motorArma OUT_B
+#define motorEsquerda OUT_C
+
+#define distancia_busca 35
+
+
+// Movimento da arma
+
+task Arma()
+{
+    while(true)
+    {
+        // Sobe 45°
+        RotateMotor(motorArma, 40, 55);
+        
+        Wait(1300);
+
+        // Desce 45°
+        RotateMotor(motorArma, 100, -55);
+    }
+}
+
+
+// Programa principal
+
+task main()
+{
+    SetSensorLowspeed(IN_1);
+
+    // Espera obrigatória
+    Wait(5000);
+
+    // Inicia a arma
+    StartTask(Arma);
+
+    // Avança inicialmente
+    OnFwd(motorDireita,80);
+    OnFwd(motorEsquerda,80);
+    Wait(300);
+
+    long ultimoContato = CurrentTick();
+
+    while(true)
+    {
+        // Detecta adversário
+        if(SensorUS(IN_1) <= distancia_busca)
+        {
+            ultimoContato = CurrentTick();
+
+            // Ataque
+            OnFwd(motorDireita,100);
+            OnFwd(motorEsquerda,100);
+        }
+        else
+        {
+            // Procurando 3 segundos
+            if(CurrentTick() - ultimoContato < 3000)
+            {
+                OnFwd(motorDireita,80);
+                OnFwd(motorEsquerda,80);
+            }
+            else
+            {
+                // Gira procurando adversário
+                OnFwd(motorDireita,80);
+                OnRev(motorEsquerda,60);
+            }
+        }
+
+        Wait(20);
+    }
+}
