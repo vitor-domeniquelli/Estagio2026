@@ -31,27 +31,33 @@ task main()
      }
 //movimento da armaInicial
             void A_I()
-            { OnFwd(motorArma, 10);
-             Wait(20); Off(motorArma); }
+            { OnFwd(motorArma, 50);
+             Wait(300); Off(motorArma); }
 //movimento da arma
             void arma()
-            { OnFwd(motorArma, -70);
-             Wait(20); Off(motorArma); }
+            { OnFwd(motorArma, -50);
+             Wait(500); Off(motorArma); }
 //movimento inicial do robô
             void m_inicial()
-            { OnFwd(motorDireita, -80);
+            { OnFwd(motorDireita, 40);
              OnFwd(motorEsquerda, -80);
-             Wait(500);
-             OnFwd(motorDireita, -80);
+             Wait(900);
+             OnFwd(motorDireita, 80);
              OnFwd(motorEsquerda,80);
              Wait(300); }
 //busca o adversário
           void busca()
-          { OnFwd(motorDireita, -80);
-          OnFwd(motorEsquerda,-40);
+          { OnFwd(motorDireita, -60);
+          OnFwd(motorEsquerda,-60);
           Wait(150); }
 //ataque
           void ataque()
           { OnFwd(motorDireita, -100);
             OnFwd(motorEsquerda, -100);
-            OnFwd(motorArma, 70);}
+            OnFwd(motorArma, 50);}
+
+
+
+
+
+
