@@ -1,0 +1,725 @@
+//==============================================================
+// ROBÔ SUMÔ LEGO NXT
+// TAMANDUTECH - PROCESSO SELETIVO
+//
+// Linguagem: NXC
+// Ambiente: BricxCC
+//
+// Estratégia:
+// - Ataque rápido
+// - Busca agressiva
+// - Proteção contra borda
+// - Rampa frontal
+//
+//==============================================================
+
+
+//==============================================================
+// CONFIGURAÇÃO DOS MOTORES
+//==============================================================
+
+#define motorDireita OUT_A
+#define motorRampa OUT_B
+#define motorEsquerda OUT_C
+
+
+//==============================================================
+// CONFIGURAÇÃO DOS SENSORES
+//==============================================================
+
+#define sensorUltrassonico IN_1
+
+// Sensor de borda previsto para porta 2
+#define sensorBorda IN_2
+
+
+
+//==============================================================
+// VELOCIDADES
+//==============================================================
+
+#define VEL_ATAQUE_MAX     100
+#define VEL_ATAQUE_MED      85
+#define VEL_BUSCA            55
+#define VEL_RECUO            90
+#define VEL_GIRO             75
+
+
+
+//==============================================================
+// DISTÂNCIAS
+//==============================================================
+
+#define DISTANCIA_DETECTAR 35
+#define DISTANCIA_ATAQUE    20
+#define DISTANCIA_PERTO     10
+
+
+
+//==============================================================
+// TEMPOS
+//==============================================================
+
+#define TEMPO_RAMPA          700
+
+#define TEMPO_INICIO_1       600
+#define TEMPO_CURVA_INICIO   350
+#define TEMPO_INICIO_2       400
+
+
+#define TEMPO_CONFIRMAR      250
+
+#define TEMPO_MEMORIA_ALVO   300
+
+
+#define TEMPO_RE_BORDA       450
+#define TEMPO_GIRO_BORDA     400
+
+
+
+//==============================================================
+// VARIÁVEIS GLOBAIS
+//==============================================================
+
+
+int distancia = 255;
+
+bool atacando = false;
+
+bool alvoConfirmado = false;
+
+bool fugaDireita = true;
+
+
+// Controle da busca
+
+int etapaBusca = 0;
+
+
+//==============================================================
+// PROTÓTIPOS
+//==============================================================
+
+
+// Movimento
+
+void frente(int velocidade);
+
+void re(int velocidade);
+
+void parar();
+
+void giraDireita(int velocidade);
+
+void giraEsquerda(int velocidade);
+
+void curvaDireita(int velocidade);
+
+void curvaEsquerda(int velocidade);
+
+void arrancada();
+
+
+// Estratégia
+
+void abaixaRampa();
+
+void movimentoInicial();
+
+void buscar();
+
+void confirmarAlvo();
+
+void atacar();
+
+
+// Borda
+
+bool detectouBorda();
+
+void escaparBorda();
+
+
+// Sensor
+
+int lerDistancia();
+
+
+
+
+//==============================================================
+// FUNÇÕES DE MOVIMENTO
+//==============================================================
+
+
+void frente(int velocidade)
+{
+    OnRev(motorDireita, velocidade);
+    OnRev(motorEsquerda, velocidade);
+}
+
+
+
+void re(int velocidade)
+{
+    OnFwd(motorDireita, velocidade);
+    OnFwd(motorEsquerda, velocidade);
+}
+
+
+
+void parar()
+{
+    Off(motorDireita);
+    Off(motorEsquerda);
+}
+
+
+
+void giraDireita(int velocidade)
+{
+    OnRev(motorDireita, velocidade);
+    OnFwd(motorEsquerda, velocidade);
+}
+
+
+
+void giraEsquerda(int velocidade)
+{
+    OnFwd(motorDireita, velocidade);
+    OnRev(motorEsquerda, velocidade);
+}
+
+
+
+void curvaDireita(int velocidade)
+{
+    OnFwd(motorDireita, velocidade/3);
+    OnFwd(motorEsquerda, velocidade);
+}
+
+
+
+void curvaEsquerda(int velocidade)
+{
+    OnFwd(motorDireita, velocidade);
+    OnFwd(motorEsquerda, velocidade/3);
+}
+
+
+
+void arrancada()
+{
+    frente(100);
+
+    Wait(250);
+
+}
+
+
+
+//==============================================================
+// RAMPA
+//==============================================================
+
+
+void abaixaRampa()
+{
+
+    OnFwd(motorRampa,55);
+
+    Wait(TEMPO_RAMPA);
+
+    Off(motorRampa);
+
+}
+
+
+
+//==============================================================
+// MOVIMENTO INICIAL
+//==============================================================
+
+
+void movimentoInicial()
+{
+
+
+    // Avança rapidamente
+
+    frente(100);
+
+    Wait(TEMPO_INICIO_1);
+
+    parar();
+
+
+
+    // Entra em diagonal
+
+    curvaDireita(90);
+
+    Wait(TEMPO_CURVA_INICIO);
+
+    parar();
+
+
+
+    // Continua avançando
+
+    frente(100);
+
+    Wait(TEMPO_INICIO_2);
+
+    parar();
+
+
+}
+
+
+
+//==============================================================
+// SENSOR ULTRASSÔNICO
+//==============================================================
+
+
+int lerDistancia()
+{
+
+    return SensorUS(sensorUltrassonico);
+
+}
+
+//==============================================================
+// BUSCA DO ADVERSÁRIO
+//==============================================================
+//
+// Estratégia:
+// O robô não fica parado girando.
+// Ele faz curvas e pequenos giros para cobrir mais área.
+//
+//==============================================================
+
+
+void buscar()
+{
+
+    distancia = lerDistancia();
+
+
+
+    // Encontrou algo
+
+    if(distancia <= DISTANCIA_DETECTAR)
+    {
+
+        parar();
+
+        confirmarAlvo();
+
+        return;
+
+    }
+
+
+
+    // Busca em sequência
+
+    switch(etapaBusca)
+    {
+
+
+        case 0:
+
+            curvaEsquerda(VEL_BUSCA);
+
+            Wait(300);
+
+        break;
+
+
+
+        case 1:
+
+            curvaDireita(VEL_BUSCA);
+
+            Wait(300);
+
+        break;
+
+
+
+        case 2:
+
+            giraEsquerda(VEL_GIRO);
+
+            Wait(400);
+
+        break;
+
+
+
+        case 3:
+
+            giraDireita(VEL_GIRO);
+
+            Wait(400);
+
+        break;
+
+
+
+    }
+
+
+    parar();
+
+
+    etapaBusca++;
+
+
+    if(etapaBusca > 3)
+    {
+        etapaBusca = 0;
+    }
+
+
+}
+
+
+
+//==============================================================
+// CONFIRMAÇÃO DO ALVO
+//==============================================================
+//
+// Evita atacar objetos que não são adversários.
+//
+//==============================================================
+
+
+void confirmarAlvo()
+{
+
+
+    frente(70);
+
+
+    Wait(TEMPO_CONFIRMAR);
+
+
+
+    distancia = lerDistancia();
+
+
+
+    parar();
+
+
+
+    if(distancia <= DISTANCIA_ATAQUE)
+    {
+
+        atacando = true;
+
+    }
+
+    else
+    {
+
+        atacando = false;
+
+    }
+
+
+}
+
+
+
+//==============================================================
+// ATAQUE
+//==============================================================
+//
+// Ataque progressivo:
+// longe -> aproxima
+// perto -> máxima potência
+//
+//==============================================================
+
+
+void atacar()
+{
+
+
+    distancia = lerDistancia();
+
+
+
+    // Perdeu o alvo
+
+    if(distancia > DISTANCIA_DETECTAR)
+    {
+
+
+        frente(VEL_ATAQUE_MED);
+
+
+        Wait(TEMPO_MEMORIA_ALVO);
+
+
+        parar();
+
+
+
+        atacando = false;
+
+        alvoConfirmado = false;
+
+
+
+        return;
+
+    }
+
+
+
+
+    // Muito perto
+
+    if(distancia <= DISTANCIA_PERTO)
+    {
+
+        frente(VEL_ATAQUE_MAX);
+
+    }
+
+
+
+    // Distância média
+
+    else if(distancia <= DISTANCIA_ATAQUE)
+    {
+
+        frente(VEL_ATAQUE_MED);
+
+    }
+
+
+
+    // Aproximação
+
+    else
+    {
+
+        frente(70);
+
+    }
+
+
+
+}
+
+
+
+//==============================================================
+// SENSOR DE BORDA
+//==============================================================
+//
+
+
+bool detectouBorda()
+{
+
+
+    /*
+    
+    EXEMPLO PARA SENSOR DE LUZ:
+
+    int valor;
+
+    valor = Sensor(sensorBorda);
+
+
+    if(valor > 50)
+    {
+        return true;
+    }
+
+
+    */
+
+
+    return false;
+
+
+}
+
+
+
+//==============================================================
+// ESCAPAR DA BORDA
+//==============================================================
+
+
+void escaparBorda()
+{
+
+
+    parar();
+
+
+
+    // Sai da borda
+
+    re(VEL_RECUO);
+
+
+    Wait(TEMPO_RE_BORDA);
+
+
+
+    parar();
+
+
+
+    // Alterna direção para não ficar preso
+
+    if(fugaDireita)
+    {
+
+
+        giraDireita(VEL_GIRO);
+
+
+        Wait(TEMPO_GIRO_BORDA);
+
+
+    }
+
+    else
+    {
+
+
+        giraEsquerda(VEL_GIRO);
+
+
+        Wait(TEMPO_GIRO_BORDA);
+
+
+    }
+
+
+
+    parar();
+
+
+
+    fugaDireita = !fugaDireita;
+
+
+
+    // Reseta comportamento
+
+    atacando = false;
+
+    alvoConfirmado = false;
+
+
+
+    // Volta rapidamente para a luta
+
+    arrancada();
+
+
+
+}
+
+
+
+//==============================================================
+// PROGRAMA PRINCIPAL
+//==============================================================
+
+
+task main()
+{
+
+
+    // Configura ultrassônico
+
+    SetSensorLowspeed(sensorUltrassonico);
+
+
+
+    // Tempo obrigatório antes da luta
+
+    Wait(5000);
+
+
+
+    // Abaixa proteção frontal
+
+    abaixaRampa();
+
+
+
+    // Estratégia inicial
+
+    movimentoInicial();
+
+
+
+    // Loop infinito
+
+    while(true)
+    {
+
+
+        //------------------------------------------------------
+        // PRIORIDADE 1:
+        // Não sair do ringue
+        //------------------------------------------------------
+
+
+        if(detectouBorda())
+        {
+
+            escaparBorda();
+
+        }
+
+
+
+        //------------------------------------------------------
+        // PRIORIDADE 2:
+        // Atacar inimigo
+        //------------------------------------------------------
+
+
+        else if(atacando)
+        {
+
+            atacar();
+
+        }
+
+
+
+        //------------------------------------------------------
+        // PRIORIDADE 3:
+        // Procurar inimigo
+        //------------------------------------------------------
+
+
+        else
+        {
+
+            buscar();
+
+        }
+
+
+
+    }
+
+
+}
